@@ -1,0 +1,29 @@
+services:
+  server:
+    build:
+      context: .
+      target: final
+    ports:
+      - 5000:5000
+    environment:
+      MAGIC_LINK_SECRET: ${MAGIC_LINK_SECRET}
+      DATABASE_URL: ${DATABASE_URL}      
+      AUTO_MIGRATE: ${AUTO_MIGRATE}
+      PORT: ${PORT}
+      HOST: ${HOST}
+      IAM_JWT_SECRET: ${IAM_JWT_SECRET}
+      BCRYPT_SALT: ${BCRYPT_SALT}
+      RUST_LOG: ${RUST_LOG}
+      REDIS: ${REDIS}
+      SMTP: ${SMTP}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_UNAME: ${SMTP_UNAME}
+      SMTP_PASS: ${SMTP_PASS}
+      DEFAULT_SENDER: ${DEFAULT_SENDER}
+      DEFAULT_SENDER_NAME: ${DEFAULT_SENDER_NAME}
+      ENV: ${ENV}
+      BASE_LOGIN_LINK: ${BASE_LOGIN_LINK}
+      CRATE_NAME: ${CRATE_NAME}
+      RUST_BACKTRACE: ${RUST_BACKTRACE}
+      CRATE_LOG: ${CRATE_LOG}
+      SCHEDULER_POLL_INTERVAL: ${SCHEDULER_POLL_INTERVAL}
