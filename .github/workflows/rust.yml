@@ -102,8 +102,10 @@ jobs:
     - name: Build
       run: cargo build --verbose
     - name: Copy env for tests
-      run: cp .env.example .env.e2e.test
-    - name: run migration
-      run: cd migration && cargo run
+      run: cp .env.example .env.e2e.test; cp .env.example .env
+    - name: Install Sea orm
+      run: cargo install sea-orm-cli@1.1.0
+    - name: Run migration
+      run: sea-orm-cli migrate up
     - name: Run tests
       run: cargo test --verbose
