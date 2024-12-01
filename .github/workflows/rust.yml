@@ -38,7 +38,7 @@ jobs:
         volumes:
         # This is where smtp4dev stores the database..
             - smtp4dev_data:/smtp4dev
-        environment:
+        env:
         # Uncomment to customise these settings
         # This is not a complete list of the available settings.
         # See the documentation in appsettings.json for a full list.
@@ -94,7 +94,7 @@ jobs:
         image: redis:alpine
         ports:
             - 6379:6379
-        environment:
+        env:
             - REDIS_REPLICATION_MODE=master
     steps:
     - uses: actions/checkout@v4
