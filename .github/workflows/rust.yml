@@ -34,6 +34,6 @@ jobs:
     - name: Copy env for tests
       run: cp .env.example .env.e2e.test
     - name: run migration
-      run: cd migrations && cargo run
+      run: cd migration && cargo run
     - name: Run tests
       run: cargo test --verbose
