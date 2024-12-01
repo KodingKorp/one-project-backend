@@ -1,7 +1,7 @@
 
 
 # Added by cargo
-
+migration/target
 /target
 .env
 .env.e2e.test
