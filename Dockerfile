@@ -76,6 +76,9 @@ WORKDIR /home/app
 # IMPORTANT: Replace 'rust-poem-server' with the actual name of your
 # binary as defined in your Cargo.toml file (usually the package name).
 COPY --from=builder /usr/src/app/target/release/${APP_NAME} ./server
+# Copy the static files and templates to the working directory.
+COPY --from=builder /usr/src/app/templates ./templates
+COPY --from=builder /usr/src/app/static ./static
 
 # Expose the port your Poem web server listens on.
 # This doesn't publish the port, but documents which port should be published.

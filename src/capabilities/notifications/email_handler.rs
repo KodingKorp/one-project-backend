@@ -27,17 +27,24 @@ impl JobHandler for EmailHandler {
             None => serde_json::json!({}),
         };
         let value = crate::capabilities::mailer::Mailer::new();
-        async move {
-            let _ = value
-                .send_email(
-                    &message.template,
-                    &message.subject,
-                    &message.name,
-                    &message.email,
-                    d,
-                )
-                .await;
-        }.await;
-        Ok(None)
+        logger::info("[bg][notifications][handler] Mailer created");
+        let result = value
+            .send_email(
+                &message.template,
+                &message.subject,
+                &message.name,
+                &message.email,
+                d,
+            )
+            .await;
+        if let Err(e) = result {
+            logger::error(&format!(
+                "[bg][notifications][handler] Error sending email: {}",
+                e
+            ));
+            return Err(crate::capabilities::lib::common_error::CommonError::from(e.to_string()));
+        }
+        logger::info(&format!("[bg][notifications][handler] Email sent successfully to {}", message.email));
+        Ok(Some("Email sent successfully".to_owned()))
     }
 }
