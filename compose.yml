@@ -3,6 +3,8 @@ services:
     build:
       context: .
       target: final
+      args:
+        APP_NAME: one-project-backend
     ports:
       - 5000:5000
     environment:

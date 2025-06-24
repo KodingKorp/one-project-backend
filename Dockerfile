@@ -1,72 +1,85 @@
-# syntax=docker/dockerfile:1
+# =========================================================================
+# ---- Stage 1: Builder ----
+# This stage compiles the Rust application.
+# =========================================================================
 
-# Comments are provided throughout this file to help you get started.
-# If you need more help, visit the Dockerfile reference guide at
-# https://docs.docker.com/go/dockerfile-reference/
+# App name from compose file or build args.
+# This allows you to specify the name of the binary dynamically.
+# You can pass this as a build argument when building the Docker image.
+# Example: docker build --build-arg APP_NAME=your_app_name .
+ARG APP_NAME=rust-poem-server
 
-# Want to help us make this template better? Share your feedback here: https://forms.gle/ybq9Krt8jtBL3iCk7
+FROM rust:1-slim-bookworm AS builder
 
-ARG RUST_VERSION=1.82.0
-ARG APP_NAME=one-project-backend
+# Install system dependencies required for compiling common Rust crates.
+# 'libssl-dev' is often needed for crates that use OpenSSL.
+RUN apt-get update && apt-get install -y --no-install-recommends pkg-config libssl-dev
 
-################################################################################
-# Create a stage for building the application.
+# Set the working directory inside the container.
+WORKDIR /usr/src/app
 
-FROM rust:${RUST_VERSION}-alpine AS build
-ARG APP_NAME
-WORKDIR /app
-ENV OPENSSL_DIR=/usr
-# Install host build dependencies.
-RUN apk add --no-cache clang lld musl-dev git openssl-dev
+# Copy the dependency manifest files.
+COPY Cargo.toml Cargo.lock ./
 
-# Build the application.
-# Leverage a cache mount to /usr/local/cargo/registry/
-# for downloaded dependencies, a cache mount to /usr/local/cargo/git/db
-# for git repository dependencies, and a cache mount to /app/target/ for
-# compiled dependencies which will speed up subsequent builds.
-# Leverage a bind mount to the src directory to avoid having to copy the
-# source code into the container. Once built, copy the executable to an
-# output directory before the cache mounted /app/target is unmounted.
-RUN --mount=type=bind,source=src,target=src \
-    --mount=type=bind,source=Cargo.toml,target=Cargo.toml \
-    --mount=type=bind,source=Cargo.lock,target=Cargo.lock \
-    --mount=type=bind,source=migration/src,target=migration/src \
-    --mount=type=bind,source=migration/Cargo.toml,target=migration/Cargo.toml \
-    --mount=type=cache,target=/app/target/ \
-    --mount=type=cache,target=/usr/local/cargo/git/db \
-    --mount=type=cache,target=/usr/local/cargo/registry/ \
-cargo build --release && \
-cp ./target/release/$APP_NAME /bin/server
+# Now, copy the actual application source code.
+COPY ./templates ./templates
+COPY ./static ./static
+COPY ./migration ./migration
+# Create a dummy project and build it to cache dependencies.
+# This leverages Docker's layer caching. As long as Cargo.toml and Cargo.lock
+# don't change, the dependencies won't be re-downloaded or re-compiled
+# on subsequent builds, speeding up the process significantly.
+RUN mkdir src && \
+    echo "fn main() {}" > src/main.rs && \
+    cargo build --release
 
-################################################################################
-# Create a new stage for running the application that contains the minimal
-# runtime dependencies for the application. This often uses a different base
-# image from the build stage where the necessary files are copied from the build
-# stage.
-#
-# The example below uses the alpine image as the foundation for running the app.
-# By specifying the "3.18" tag, it will use version 3.18 of alpine. If
-# reproducability is important, consider using a digest
-# (e.g., alpine@sha256:664888ac9cfd28068e062c991ebcff4b4c7307dc8dd4df9e728bedde5c449d91).
-FROM alpine:latest AS final
+# Now, copy the actual application source code.
+COPY ./src ./src
 
-# Create a non-privileged user that the app will run under.
-# See https://docs.docker.com/go/dockerfile-user-best-practices/
-ARG UID=10001
-RUN adduser \
-    --disabled-password \
-    --gecos "" \
-    --home "/nonexistent" \
-    --shell "/sbin/nologin" \
-    --no-create-home \
-    --uid "${UID}" \
-    appuser
-USER appuser
 
-# Copy the executable from the "build" stage.
-COPY --from=build /bin/server /bin/
+# Touch the main source file to ensure Cargo recognizes the code change
+# and rebuilds the final binary, not the dummy one.
+RUN touch src/main.rs
 
-# Expose the port that the application listens on.
+# Build the application for release.
+# The --release flag enables optimizations for a production build.
+RUN cargo build --release
+
+
+# =========================================================================
+# ---- Stage 2: Runner ----
+# This stage creates the final, lightweight image to run the application.
+# =========================================================================
+FROM debian:stable-slim AS final
+
+ARG APP_NAME=rust-poem-server
+
+# Ensure all security updates are applied
+RUN apt-get update && apt-get upgrade -y --no-install-recommends && rm -rf /var/lib/apt/lists/*
+
+# Install runtime dependencies.
+# 'ca-certificates' is ESSENTIAL for your application to trust the TLS
+# certificate of the mail server you're connecting to on port 465.
+# Without this, you would get TLS/SSL handshake errors.
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
+# Create a non-root user and group for security best practices.
+# Running as a non-root user minimizes potential damage from a security vulnerability.
+RUN groupadd --system app && useradd --system --gid app app
+USER app
+
+# Set the working directory for the non-root user.
+WORKDIR /home/app
+
+# Copy the compiled binary from the 'builder' stage.
+# IMPORTANT: Replace 'rust-poem-server' with the actual name of your
+# binary as defined in your Cargo.toml file (usually the package name).
+COPY --from=builder /usr/src/app/target/release/${APP_NAME} ./server
+
+# Expose the port your Poem web server listens on.
+# This doesn't publish the port, but documents which port should be published.
 EXPOSE 5000
-# What the container should run when it is started.
-CMD ["/bin/server"]
+
+# Set the command to run the application when the container starts.
+CMD ["./server"]

@@ -1,8 +1,8 @@
 use std::str::FromStr;
 
 use handlebars::Handlebars;
-use lettre::{message::{header::ContentType, Mailbox}, transport::smtp::{authentication::Credentials, PoolConfig}, Address, AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor};
-
+use lettre::{message::{header::ContentType, Mailbox}, transport::smtp:: PoolConfig, Address, AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor};
+use crate::logger;
 use super::config;
 
 #[derive(Clone)]
@@ -15,33 +15,35 @@ impl Mailer {
     pub fn new() -> Self {
         let smtp_server = config::get_env::<String>("SMTP");
         let smtp_port = config::get_env("SMTP_PORT");
-        let smtp_user_name = config::get_env("SMTP_UNAME");
-        let smtp_user_pass= config::get_env("SMTP_PASS");
+        let smtp_user_name = config::get_env::<String>("SMTP_UNAME");
+        let smtp_user_pass= config::get_env::<String>("SMTP_PASS");
         let default_sender = config::get_env::<String>("DEFAULT_SENDER");
-        let default_sender_name = config::get_env("DEFAULT_SENDER_NAME");
-
-        let creds = Credentials::new(smtp_user_name, smtp_user_pass);
+        let default_sender_name = config::get_env::<String>("DEFAULT_SENDER_NAME");
 
         let mut split = default_sender.split("@");
         let user = split.next().unwrap();
         let domain = split.next().unwrap();
 
         let sender = Address::new(user, domain).unwrap();
-        let transport:AsyncSmtpTransport::<Tokio1Executor>;
         let pool_config = PoolConfig::new().min_idle(1);
 
-        if config::get_env::<String>("ENV") == "production" {
-            transport = AsyncSmtpTransport::<Tokio1Executor>::relay(&smtp_server).unwrap()
+        let transport = if config::get_env::<String>("ENV") == "production" {
+            let smtps_url = format!("smtps://{}:{}@{}:{}", &smtp_user_name, &smtp_user_pass, &smtp_server, &smtp_port);
+            AsyncSmtpTransport::<Tokio1Executor>::from_url(&smtps_url)
+                .map_err(|e| {
+                    logger::error(&format!("Failed to create SMTP transport: {}", e));
+                    e
+                })
+                .expect("Failed to create SMTP transport")
+                .pool_config(pool_config)
+                .build()
+        } else {
+            AsyncSmtpTransport::<Tokio1Executor>::builder_dangerous(&smtp_server)
                 .pool_config(pool_config)
                 .port(smtp_port)
-                .credentials(creds)
-                .build();
-        } else {
-            transport = AsyncSmtpTransport::<Tokio1Executor>::builder_dangerous(&smtp_server)
-            .pool_config(pool_config)
-            .port(smtp_port)
-            .build();
-        }
+                .build()
+        };
+
         Self {
             mailer: transport,
             default_sender: Mailbox::new(Some(default_sender_name), sender),
@@ -51,7 +53,7 @@ impl Mailer {
     pub fn render_template(&self, template_name: &str, data: serde_json::Value) -> Result<String, handlebars::RenderError> {
         let mut handlebars = Handlebars::new();
         handlebars
-            .register_template_file(template_name, &format!("./templates/{}.hbs", template_name))?;
+            .register_template_file(template_name, format!("./templates/{}.hbs", template_name))?;
         handlebars.register_template_file("styles", "./templates/partials/styles.hbs")?;
         handlebars.register_template_file("base", "./templates/layout/base.hbs")?;
         let content_template = handlebars.render(template_name, &data)?;
@@ -80,9 +82,9 @@ impl Mailer {
             .header(ContentType::TEXT_HTML)
             .body(html_template.clone())?;
         
-        tracing::debug!("Before mail send");
+        logger::debug("Before mail send");
         let _r = self.mailer.send(email).await;
-        tracing::debug!("After mail send");
+        logger::debug("After mail send");
         Ok(())
     }
 
@@ -90,7 +92,7 @@ impl Mailer {
         match self.mailer.test_connection().await {
             Ok(b) => b,
             Err(e) => {
-                tracing::error!("{:#?}",e);
+                logger::error(&format!("Failed to connect to SMTP server: {}", e));
                 false
             }
         }

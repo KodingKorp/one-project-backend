@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 authors = ["Shivam Mathur <shivam@kodingkorp.com>"]
 description = "Proprietary webserver for KodingKorp"
-rust-version = "1.80.1"
+rust-version = "1.87.0"
 readme = "README.md"
 
 [dependencies]
