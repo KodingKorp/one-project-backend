@@ -2,7 +2,7 @@ use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, Qu
 
 use crate::capabilities::lib::common_error::CommonError;
 
-use super::entities::user_login::{self, LoginStrategy};
+use super::super::entities::user_login::{self, LoginStrategy};
 
 pub async fn add_user_login(
     db: &DatabaseConnection,

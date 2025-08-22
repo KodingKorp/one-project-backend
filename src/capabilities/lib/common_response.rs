@@ -18,6 +18,9 @@ pub enum CommonResponse<T: Serialize + ParseFromJSON + ToJSON + Send + Sync> {
     /// Repsonse 201 with JSON data
     #[oai(status = 201)]
     Ok(Json<Data<T>>),
+    /// Repsonse 201 with JSON data
+    #[oai(status = 201)]
+    OkPaginate(Json<PaginatedData<T>>),
     /// Repsonse 201 with ApiError
     #[oai(status = 202)]
     Err(Json<CommonError>),
@@ -57,8 +60,36 @@ impl<T: Serialize + ToJSON + ParseFromJSON> Data<T> {
     }
 }
 
+#[derive(Debug, Object, Deserialize, Serialize)]
+pub struct PaginatedData<T: Serialize + ToJSON + ParseFromJSON> {
+    pub data: T,
+    pub page: u64,
+    pub page_size: u64,
+    pub pages: u64,
+}
+
+impl<T: Serialize + ToJSON + ParseFromJSON> PaginatedData<T> {
+    pub fn from(data: T, page: u64, page_size: u64, pages: u64) -> Self {
+        Self {
+            data,
+            page,
+            page_size,
+            pages,
+        }
+    }
+}
+
 pub fn ok<T: Serialize + ToJSON + ParseFromJSON>(data: T) -> CommonResponse<T> {
     CommonResponse::Ok(Json(Data::from(data)))
+}
+
+pub fn ok_paginated<T: Serialize + ToJSON + ParseFromJSON>(
+    data: T,
+    page: u64,
+    page_size: u64,
+    pages: u64,
+) -> CommonResponse<T> {
+    CommonResponse::OkPaginate(Json(PaginatedData::from(data, page, page_size, pages)))
 }
 
 pub fn err<T: Serialize + ToJSON + ParseFromJSON>(error: CommonError) -> CommonResponse<T> {

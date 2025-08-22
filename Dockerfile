@@ -7,13 +7,15 @@
 # This allows you to specify the name of the binary dynamically.
 # You can pass this as a build argument when building the Docker image.
 # Example: docker build --build-arg APP_NAME=your_app_name .
-ARG APP_NAME=rust-poem-server
+ARG APP_NAME=one-project-backend
 
-FROM rust:1-slim-bookworm AS builder
+FROM rust:1.89.0-slim-bookworm AS builder
 
 # Install system dependencies required for compiling common Rust crates.
 # 'libssl-dev' is often needed for crates that use OpenSSL.
-RUN apt-get update && apt-get install -y --no-install-recommends pkg-config libssl-dev
+RUN apt-get update && apt-get upgrade -y --no-install-recommends && \
+    apt-get install -y --no-install-recommends pkg-config libssl-dev && \
+    rm -rf /var/lib/apt/lists/*
 
 # Set the working directory inside the container.
 WORKDIR /usr/src/app
@@ -52,7 +54,7 @@ RUN cargo build --release
 # =========================================================================
 FROM debian:stable-slim AS final
 
-ARG APP_NAME=rust-poem-server
+ARG APP_NAME=one-project-backend
 
 # Ensure all security updates are applied
 RUN apt-get update && apt-get upgrade -y --no-install-recommends && rm -rf /var/lib/apt/lists/*

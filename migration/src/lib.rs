@@ -5,6 +5,8 @@ mod m20240809_114718_sessions;
 mod m20241101_172249_user_login;
 mod m20241103_032650_create_jobs;
 mod m20241129_115216_add_queue_jobs;
+mod m20250420_151021_create_organisation;
+mod m20250420_151106_create_org_to_user_map;
 pub struct Migrator;
 
 #[async_trait::async_trait]
@@ -16,6 +18,8 @@ impl MigratorTrait for Migrator {
             Box::new(m20241101_172249_user_login::Migration),
             Box::new(m20241103_032650_create_jobs::Migration),
             Box::new(m20241129_115216_add_queue_jobs::Migration),
+            Box::new(m20250420_151021_create_organisation::Migration),
+            Box::new(m20250420_151106_create_org_to_user_map::Migration),
         ]
     }
 }

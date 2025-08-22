@@ -8,8 +8,10 @@ pub struct CommonError {
 }
 
 impl CommonError {
-    pub fn new(message: String) -> Self {
-        Self { message }
+    pub fn new(message: &str) -> Self {
+        Self {
+            message: message.to_owned(),
+        }
     }
 }
 impl Display for CommonError {
@@ -21,13 +23,13 @@ impl Display for CommonError {
 impl From<String> for CommonError {
     fn from(msg: String) -> Self {
         logger::error(&msg);
-        Self::new(msg)
+        Self::new(&msg)
     }
 }
 
 impl From<&str> for CommonError {
     fn from(msg: &str) -> Self {
         logger::error(msg);
-        Self::new(msg.to_owned())
+        Self::new(msg)
     }
 }

@@ -1,12 +1,6 @@
 use std::sync::Arc;
 
-use poem_openapi::OpenApi;
-
-use crate::capabilities::{
-    background,
-    lib::service_trait::Service,
-    mailer::Mailer,
-};
+use crate::capabilities::{background, lib::service_trait::Service, logger, mailer::Mailer};
 
 use self::background::orchestrator::{BackgroundOrchestrator, CreateJob, CreateQueue, RunJob};
 
@@ -15,19 +9,19 @@ use super::{email_handler, objects::NotificationMailMessage};
 pub struct NotificationService;
 impl NotificationService {
     pub async fn send_mail(
-        template: String,
-        subject: String,
-        name: String,
-        email: String,
+        template: &str,
+        subject: &str,
+        name: &str,
+        email: &str,
         data: Option<serde_json::Value>,
         mut orchestrator: BackgroundOrchestrator,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let message = NotificationMailMessage {
             data,
-            template,
-            subject,
-            name,
-            email,
+            template: template.to_owned(),
+            subject: subject.to_owned(),
+            name: name.to_owned(),
+            email: email.to_owned(),
         };
         let message = serde_json::to_string(&message)?;
         orchestrator
@@ -50,19 +44,17 @@ impl NotificationService {
 
 #[async_trait::async_trait]
 impl Service for NotificationService {
-    fn register_routes() -> Option<impl OpenApi> {
-        None::<()>
-    }
-
     async fn register_background(
         mut orchestrator: background::orchestrator::BackgroundOrchestrator,
     ) -> background::orchestrator::BackgroundOrchestrator {
         let email_handler = email_handler::EmailHandler::new();
+        logger::info("Email Handler Created");
         orchestrator
             .register_queue(CreateQueue {
                 name: "notification".to_owned(),
             })
             .await;
+        logger::info("Notification Queue Registered");
         orchestrator
             .register_job(CreateJob {
                 name: "send_email".to_owned(),
@@ -70,6 +62,7 @@ impl Service for NotificationService {
                 handler: Arc::new(email_handler),
             })
             .await;
+        logger::info("Notification Job Registered");
         return orchestrator;
     }
 }

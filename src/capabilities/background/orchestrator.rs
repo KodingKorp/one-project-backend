@@ -67,9 +67,7 @@ impl BackgroundOrchestrator {
             while let Some(msg) = worker_rx.recv().await {
                 match msg {
                     OrchestratorMessage::Start => {
-                        logger::debug(&format!(
-                            "[bg][orchestrator] Starting queues",
-                        ));
+                        logger::debug("[bg][orchestrator] Starting queues");
                         queue_manager.start().await;
                         let _ = orchestrator_tx.send(OrchestratorMessage::Acknowledge).await;
                     }
@@ -83,7 +81,9 @@ impl BackgroundOrchestrator {
                     }
                     OrchestratorMessage::RegisterJob(job) => {
                         logger::debug(&format!("[bg][orchestrator] Registering job {}", job.name));
-                        queue_manager.set_job_handler(&job.queue, &job.name, job.handler).await;
+                        queue_manager
+                            .set_job_handler(&job.queue, &job.name, job.handler)
+                            .await;
                         let _ = orchestrator_tx.send(OrchestratorMessage::Acknowledge).await;
                     }
                     OrchestratorMessage::RegisterSchedule(schedule) => {
@@ -91,12 +91,20 @@ impl BackgroundOrchestrator {
                             "[bg][orchestrator] Registering schedule {}",
                             schedule.queue
                         ));
-                        queue_manager.upsert_schedule(&schedule.queue, &schedule.job, schedule.schedule.to_string()).await;
+                        queue_manager
+                            .upsert_schedule(
+                                &schedule.queue,
+                                &schedule.job,
+                                schedule.schedule.to_string(),
+                            )
+                            .await;
                         let _ = orchestrator_tx.send(OrchestratorMessage::Acknowledge).await;
                     }
                     OrchestratorMessage::RunJob(job) => {
                         logger::debug(&format!("[bg][orchestrator] Running job {}", job.name));
-                        queue_manager.trigger_job(&job.queue, &job.name, job.payload).await;
+                        queue_manager
+                            .trigger_job(&job.queue, &job.name, job.payload)
+                            .await;
                         let _ = orchestrator_tx.send(OrchestratorMessage::Acknowledge).await;
                     }
                     OrchestratorMessage::Ping => {
@@ -105,7 +113,6 @@ impl BackgroundOrchestrator {
                     _ => (),
                 }
             }
-            
         });
         obj
     }
@@ -197,8 +204,8 @@ impl BackgroundOrchestrator {
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
     use crate::capabilities::lib::common_error::CommonError;
+    use std::str::FromStr;
 
     use super::*;
 

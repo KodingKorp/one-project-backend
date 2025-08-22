@@ -1,0 +1,4 @@
+Contact: mailto:security@kodingkorp.com
+Preferred-Languages: en
+Canonical: https://timesheet-api.kodingkorp.com/.well-known/security.txt
+Policy: https://www.kodingkorp.com/pages/security-policy

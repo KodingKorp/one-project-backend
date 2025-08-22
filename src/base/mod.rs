@@ -56,7 +56,12 @@ impl Api {
     }
 
     #[oai(path = "/health", method = "get", tag = "ApiTags::HealthResponse")]
-    pub async fn health(&self, state: Data<&AppState>, redis: Data<&Client>, orchestrator: Data<&BackgroundOrchestrator>) -> HealthResponse {
+    pub async fn health(
+        &self,
+        state: Data<&AppState>,
+        redis: Data<&Client>,
+        orchestrator: Data<&BackgroundOrchestrator>,
+    ) -> HealthResponse {
         // Redis
         let mut redis_state = false;
         match redis.get_connection() {
@@ -92,7 +97,9 @@ impl Service for RootService {
     fn register_routes() -> Option<impl OpenApi> {
         Some(Api)
     }
-    async fn register_background(orchestrator: background::orchestrator::BackgroundOrchestrator) -> background::orchestrator::BackgroundOrchestrator {
+    async fn register_background(
+        orchestrator: background::orchestrator::BackgroundOrchestrator,
+    ) -> background::orchestrator::BackgroundOrchestrator {
         orchestrator
     }
 

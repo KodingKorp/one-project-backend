@@ -1,4 +1,7 @@
-use crate::{bootstrap::AppState, capabilities::{lib::common_error::CommonError, logger}};
+use crate::{
+    bootstrap::AppState,
+    capabilities::{lib::common_error::CommonError, logger},
+};
 use sea_orm::DatabaseConnection;
 use tokio::sync::mpsc::Sender;
 
@@ -110,6 +113,6 @@ impl Worker {
                 });
             }
         });
-        return worker_channel_tx;
+        worker_channel_tx
     }
 }

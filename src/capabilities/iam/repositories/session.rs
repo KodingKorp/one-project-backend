@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use crate::capabilities::lib::common_error::CommonError;
 
-use super::entities::session;
+use super::super::entities::session;
 
 pub async fn create_session(
     db: &DatabaseConnection,

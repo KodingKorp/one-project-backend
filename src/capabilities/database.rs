@@ -1,8 +1,8 @@
+use crate::logger;
+use migration::{sea_orm, MigratorTrait};
 use redis::aio::ConnectionManager;
 use sea_orm::DatabaseConnection;
-use migration::{sea_orm, MigratorTrait};
 use std::time::Duration;
-use crate::logger;
 
 pub(crate) async fn make_pg_db_connection() -> DatabaseConnection {
     let db_url = std::env::var("DATABASE_URL").expect("DATABASE_URL is not set in .env file");
@@ -32,11 +32,9 @@ pub(crate) async fn make_pg_db_connection() -> DatabaseConnection {
     conn
 }
 
-
 pub(crate) async fn create_redis_client() -> redis::Client {
     let redis_url = std::env::var("REDIS").expect("REDIS is not set in .env file");
-    let client = redis::Client::open(redis_url).unwrap();
-    client
+    redis::Client::open(redis_url).unwrap()
 }
 
 pub(crate) async fn create_redis_connection_manager() -> redis::aio::ConnectionManager {

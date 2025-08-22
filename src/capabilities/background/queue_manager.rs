@@ -4,14 +4,14 @@ use super::{queues::Queue, JobHandler};
 use crate::{bootstrap::AppState, capabilities::logger};
 pub struct QueueManager {
     pub queues: HashMap<String, Queue>,
-    pub app_state: Option<AppState>
+    pub app_state: Option<AppState>,
 }
 
 impl QueueManager {
     pub fn new(app_state: Option<AppState>) -> Self {
         QueueManager {
             queues: HashMap::new(),
-            app_state
+            app_state,
         }
     }
     /// Create a new queue
@@ -26,7 +26,12 @@ impl QueueManager {
     }
 
     /// set job handler for the queue
-    pub async fn set_job_handler(&mut self, queue_name: &str, job_name: &str, job_handler: Arc<dyn JobHandler>) {
+    pub async fn set_job_handler(
+        &mut self,
+        queue_name: &str,
+        job_name: &str,
+        job_handler: Arc<dyn JobHandler>,
+    ) {
         if let Some(queue) = self.queues.get_mut(queue_name) {
             queue.register_handler(job_name, job_handler).await;
         }
@@ -41,15 +46,17 @@ impl QueueManager {
     /// trigger job
     pub async fn trigger_job(&mut self, queue_name: &str, job_name: &str, payload: Option<String>) {
         if let Some(queue) = self.queues.get_mut(queue_name) {
-            let _ = queue.create_immediate_job(job_name, payload, None, None, None).await;
+            let _ = queue
+                .create_immediate_job(job_name, payload, None, None, None)
+                .await;
         }
     }
-    
+
     /// Start all queues
     pub async fn start(&mut self) {
         // start the queue manager
-        let mut iterator = self.queues.iter_mut();
-        while let Some((name, queue)) = iterator.next() {
+        let iterator = self.queues.iter_mut();
+        for (name, queue) in iterator {
             logger::info(&format!("[bg][queue_manager] Starting queue {}", name));
             let _ = queue.start().await;
             logger::info(&format!("[bg][queue_manager] Started queue {}", name));

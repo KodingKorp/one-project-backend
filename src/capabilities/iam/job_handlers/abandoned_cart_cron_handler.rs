@@ -1,7 +1,9 @@
 use std::str::FromStr;
 
-use crate::{bootstrap::AppState, capabilities::{background::JobHandler, lib::common_error::CommonError, logger}};
-
+use crate::{
+    bootstrap::AppState,
+    capabilities::{background::JobHandler, lib::common_error::CommonError, logger},
+};
 
 pub struct AbandonedCartHandler;
 
@@ -20,9 +22,19 @@ impl JobHandler for AbandonedCartHandler {
         "iam_abandoned_cart"
     }
 
-    async fn run(&self, job: &crate::capabilities::background::JobModel, _: Option<AppState>) -> Result<Option<String>, CommonError> {
-        logger::debug(&format!("[bg][iam][iam_abandoned_cart] Running abandoned cart handler for job {:?}", job));
-        logger::info(&format!("[bg][iam][iam_abandoned_cart] Triggered Abandoned cart handler at {}", chrono::Local::now()));
+    async fn run(
+        &self,
+        job: &crate::capabilities::background::JobModel,
+        _: Option<AppState>,
+    ) -> Result<Option<String>, CommonError> {
+        logger::debug(&format!(
+            "[bg][iam][iam_abandoned_cart] Running abandoned cart handler for job {:?}",
+            job
+        ));
+        logger::info(&format!(
+            "[bg][iam][iam_abandoned_cart] Triggered Abandoned cart handler at {}",
+            chrono::Local::now()
+        ));
         Ok(None)
     }
 }
