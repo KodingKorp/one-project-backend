@@ -24,6 +24,12 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(Sessions::Pid).uuid().unique_key().not_null())
                     .col(ColumnDef::new(Sessions::UserAgent).string().null())
                     .col(ColumnDef::new(Sessions::IP).string().null())
+                    .col(
+                        ColumnDef::new(Sessions::Status)
+                            .string()
+                            .default("active")
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(Sessions::UserId).integer().not_null())
                         .foreign_key(
                             ForeignKey::create()
@@ -33,6 +39,12 @@ impl MigrationTrait for Migration {
                         )
                     .col(
                         ColumnDef::new(Sessions::CreatedAt)
+                            .timestamp()
+                            .not_null()
+                            .default(Expr::current_timestamp()),
+                    )
+                    .col(
+                        ColumnDef::new(Sessions::UpdatedAt)
                             .timestamp()
                             .not_null()
                             .default(Expr::current_timestamp()),
@@ -57,5 +69,7 @@ enum Sessions {
     UserId,
     UserAgent,
     IP,
-    CreatedAt
+    Status,
+    CreatedAt,
+    UpdatedAt,
 }

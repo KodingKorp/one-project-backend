@@ -81,9 +81,8 @@ async fn handle_services(
         RootService::register_routes().unwrap(),
         IAMService::register_routes().unwrap(),
     );
-    let private_api_list = //(
+    let private_api_list = 
         IAMService::register_private_routes().unwrap();
-    // );
     let all_private_apis =
         OpenApiService::new(private_api_list, "Private APIs", "1.0").url_prefix("/api/v1");
     let private_ui = all_private_apis.swagger_ui();
@@ -121,7 +120,6 @@ async fn make_app_state() -> AppState {
 }
 
 async fn make_server_session() -> (ServerSession<RedisStorage<ConnectionManager>>, Client) {
-    let env = std::env::var("ENV").expect("ENV is not set in .env file");
     let domain = std::env::var("COOKIE_DOMAIN").expect("COOKIE_DOMAIN is not set in .env file");
     let max_session = std::env::var("MAX_SESSION_DURATION")
         .expect("MAX_SESSION_DURATION is not set in .env file");
@@ -142,7 +140,7 @@ async fn make_server_session() -> (ServerSession<RedisStorage<ConnectionManager>
     (
         ServerSession::new(
             CookieConfig::default()
-                .secure(env == "production")
+                .secure(true)
                 .name("session")
                 .http_only(true)
                 .same_site(SameSite::None)
