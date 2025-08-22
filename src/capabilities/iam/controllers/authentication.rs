@@ -71,14 +71,14 @@ impl Api {
     ) -> CommonResponse<UserObject> {
         logger::info(&format!(
             "Registering user with email: {}",
-            payload.email.to_string()
+            *payload.email
         ));
         if payload.password != payload.confirm_password {
             return CommonResponse::BadRequest;
         }
         logger::info(&format!(
             "Registering user with email: {}",
-            payload.email.to_string()
+            *payload.email
         ));
         match auth_service::register(
             &state.db,

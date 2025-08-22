@@ -18,7 +18,7 @@ pub async fn get_current_user(
     }
     let session_object = session_data.unwrap();
 
-    let user = match find_user_by_pid(db, session_object.user.pid.clone()).await {
+    let user = match find_user_by_pid(db, session_object.user.pid).await {
         Ok(user) => user,
         Err(e) => {
             logger::error(&format!("Error finding user: {}", e));

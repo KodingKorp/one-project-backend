@@ -109,24 +109,27 @@ impl Queue {
             "[bg][queue][{}] Creating immediate job: {}",
             &self.name, job_id
         ));
-        let job = jobs::create_job(
-            &self.db,
+        let create_job_params = jobs::CreateJobParams {
             job_id,
-            jobs::JobType::Immediate,
-            &self.name,
+            job_type: jobs::JobType::Immediate,
+            queue: &self.name,
             payload,
             max_retries,
-            None,
-            None,
+            pattern: None,
+            delay: None,
             retry,
             id,
+        };
+        let job = jobs::create_job(
+            &self.db,
+            create_job_params,
         )
         .await?;
         logger::info(&format!(
             "[bg][queue][{}] Created immediate job: {}",
             &self.name, job_id
         ));
-        let _ = self
+        self
             .worker_channel_tx
             .as_mut()
             .ok_or_else(|| CommonError::from("TX not set".to_owned()))?
@@ -154,17 +157,22 @@ impl Queue {
             "[bg][queue][{}] Creating delayed job: {}, with delay: {}",
             &self.name, job_id, delay
         ));
-        let job = jobs::create_job(
-            &self.db,
+
+        let create_job_params = jobs::CreateJobParams {
             job_id,
-            jobs::JobType::Immediate,
-            &self.name,
+            job_type: jobs::JobType::Delayed,
+            queue: &self.name,
             payload,
             max_retries,
-            None,
-            Some(delay),
-            None,
+            pattern: None,
+            delay: Some(delay),
+            retry: None,
             id,
+        };
+
+        let job = jobs::create_job(
+            &self.db,
+            create_job_params,
         )
         .await?;
         logger::info(&format!(
@@ -186,17 +194,22 @@ impl Queue {
             "[bg][queue][{}] Creating scheduled job: {}, with pattern: {}",
             &self.name, job_id, pattern
         ));
-        let job = jobs::create_job(
-            &self.db,
+
+        let create_job_params = jobs::CreateJobParams {
             job_id,
-            jobs::JobType::Schedule,
-            &self.name,
+            job_type: jobs::JobType::Schedule,
+            queue: &self.name,
             payload,
             max_retries,
-            Some(pattern.to_owned()),
-            None,
-            None,
-            None,
+            pattern: Some(pattern.to_owned()),
+            delay: None,
+            retry: None,
+            id: None,
+        };
+
+        let job = jobs::create_job(
+            &self.db,
+            create_job_params,
         )
         .await?;
         logger::info(&format!(
@@ -217,7 +230,7 @@ impl Queue {
             .ok_or(CommonError::from("Job not found".to_owned()))?;
         let mut retry_count = job.retries;
         if retry {
-            retry_count = retry_count + 1;
+            retry_count += 1;
         }
         let new_job_id = self
             .create_immediate_job(
@@ -279,32 +292,36 @@ impl Queue {
     ) -> Result<i32, CommonError> {
         let existing_job =
             jobs::get_active_schedule_by_job_id(&self.db, job_id, &self.name).await?;
-        if existing_job.is_none() {
-            return self
-                .create_scheduled_job(job_id, pattern, payload, max_retries)
-                .await;
-        } else {
-            let existing_job = existing_job.unwrap();
+        if let Some(existing_job) = existing_job {
             logger::info(&format!(
                 "[bg][queue][{}] Updating schedule job: {}",
                 &self.name, job_id
             ));
+
+            let update_job_params = jobs::UpdateJobParams {
+                id: existing_job.id,
+                job_id,
+                job_type: jobs::JobType::Schedule,
+                payload: payload.clone(),
+                max_retries,
+                pattern: Some(pattern.to_owned()),
+                delay: Some(existing_job.delay),
+                retry: Some(existing_job.retries),
+                next_run_at: existing_job.next_run_at,
+                status: existing_job.status.clone(),
+                output: existing_job.output.clone(),
+            };
+
             let updated_job = jobs::update_job(
                 &self.db,
-                existing_job.id,
-                existing_job.job_id.as_str(),
-                existing_job.job_type,
-                payload,
-                max_retries,
-                Some(pattern.to_owned()),
-                Some(existing_job.delay),
-                Some(existing_job.retries),
-                existing_job.next_run_at,
-                existing_job.status,
-                existing_job.output,
+                update_job_params,
             )
             .await?;
             Ok(updated_job.id)
+        } else {
+            return self
+                .create_scheduled_job(job_id, pattern, payload, max_retries)
+                .await;
         }
     }
     async fn start_scheduler(&mut self) {

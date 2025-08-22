@@ -282,7 +282,7 @@ pub async fn accept_invite(
                 "Error activating user organisation mapping: {}",
                 e
             ));
-            return Ok(CommonResponse::InternalServerError);
+            Ok(CommonResponse::InternalServerError)
         }
     }
 }
@@ -405,14 +405,14 @@ pub async fn mark_user_inactive(
         }
         Ok(None) => {
             logger::error("User organisation mapping not found");
-            return Ok(CommonResponse::NotFound);
+            Ok(CommonResponse::NotFound)
         }
         Err(e) => {
             logger::error(&format!(
                 "Error marking user organisation mapping as inactive: {}",
                 e
             ));
-            return Ok(CommonResponse::InternalServerError);
+            Ok(CommonResponse::InternalServerError)
         }
     }
 }
@@ -425,7 +425,7 @@ pub async fn get_current_user_mapping(
         Some(mapping) => Ok(common_response::ok(mapping)),
         None => {
             logger::error("User mapping not found");
-            return Ok(CommonResponse::NotFound);
+            Ok(CommonResponse::NotFound)
         }
     }
 }
@@ -458,7 +458,7 @@ pub async fn get_users_in_organisation(
     Ok(common_response::ok(
         users
             .into_iter()
-            .map(|user| UserWithMappingObject::from(user))
+            .map(UserWithMappingObject::from)
             .collect(),
     ))
 }
@@ -481,7 +481,7 @@ pub async fn get_user_organisations(
     };
     Ok(common_response::ok(
         orgs.into_iter()
-            .map(|org| OrganisationObject::from(org))
+            .map(OrganisationObject::from)
             .collect(),
     ))
 }
@@ -523,7 +523,7 @@ pub async fn deactivate_current_organisation(
         }
         Err(e) => {
             logger::error(&format!("Error deactivating organisation: {}", e));
-            return Ok(CommonResponse::InternalServerError);
+            Ok(CommonResponse::InternalServerError)
         }
     }
 }
@@ -567,7 +567,7 @@ pub async fn update_org_name(
         }
         Err(e) => {
             logger::error(&format!("Error updating organisation name: {}", e));
-            return Ok(CommonResponse::InternalServerError);
+            Ok(CommonResponse::InternalServerError)
         }
     }
 }
@@ -583,11 +583,11 @@ fn verify_invite_link_token(token: &str) -> Result<UserOrgMappingObject, CommonE
     let secret = config::get_env::<String>("ORG_INVITE_SECRET");
     match crypto::jwt_verify::<UserOrgMappingObject>(token, Some(secret.as_str())) {
         Ok(mapping) => {
-            return Ok(mapping);
+            Ok(mapping)
         }
         Err(e) => {
             logger::error(&format!("Error verifying token: {}", e));
-            return Err(CommonError::new("Token invalid"));
+            Err(CommonError::new("Token invalid"))
         }
     }
 }

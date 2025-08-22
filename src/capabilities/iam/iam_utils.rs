@@ -21,12 +21,12 @@ pub use super::entities::{
 /// Get current logged in user or panic if user not found
 pub fn get_current_user(session: &Session) -> UserObject {
     let session_data = session.get::<SessionObject>(constants::SESSION_KEY_NAME);
-    if session_data.is_none() {
+    if let Some(session_object) = session_data {
+        session_object.user
+    } else {
         logger::error("Session data not found");
         panic!("Session data not found");
     }
-    let session_object = session_data.unwrap();
-    return session_object.user.clone();
 }
 
 /// Get current organisation object and none if not found
@@ -52,5 +52,5 @@ pub fn get_current_user_access_info(session: &Session) -> Option<(i32, Role, i32
             return None;
         }
     };
-    return Some((session_object.user_id, role, session_object.org_id));
+    Some((session_object.user_id, role, session_object.org_id))
 }

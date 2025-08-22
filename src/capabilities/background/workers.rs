@@ -113,6 +113,6 @@ impl Worker {
                 });
             }
         });
-        return worker_channel_tx;
+        worker_channel_tx
     }
 }

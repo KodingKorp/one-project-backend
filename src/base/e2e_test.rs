@@ -47,8 +47,8 @@ mod test {
             .unwrap_or(String::from(""));
         assert_ne!(&resp_str, "");
         let ping_response: Ping = serde_json::from_str(&resp_str)?;
-        assert_eq!(
-            ping_response.up, true,
+        assert!(
+            ping_response.up,
             "testing db connection with {} and {}",
             &ping_response.up, true
         );

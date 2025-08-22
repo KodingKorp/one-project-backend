@@ -9,8 +9,7 @@ pub async fn get_client() -> TestClient<App> {
         format!("{}/.env.e2e.test", env!("CARGO_MANIFEST_DIR")).as_str(),
     ));
     let app = bootstrap::build_app().await;
-    let client = TestClient::new(app);
-    return client;
+    TestClient::new(app)
 }
 
 pub async fn get_client_with_user() -> TestClient<App> {
@@ -37,5 +36,5 @@ pub async fn get_client_with_user() -> TestClient<App> {
         .string()
         .parse()
         .unwrap();
-    return TestClient::new(bootstrap::build_app().await).default_header("Authorization", token);
+    TestClient::new(bootstrap::build_app().await).default_header("Authorization", token)
 }

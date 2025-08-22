@@ -13,6 +13,33 @@ use chrono::Utc;
 use cron::Schedule;
 use std::str::FromStr;
 
+pub struct CreateJobParams<'a> {
+    pub job_id: &'a str,
+    pub job_type: jobs::JobType,
+    pub queue: &'a str,
+    pub payload: Option<String>,
+    pub max_retries: Option<i32>,
+    pub pattern: Option<String>,
+    pub delay: Option<i32>,
+    pub retry: Option<i32>,
+    pub id: Option<i32>,
+}
+
+pub struct UpdateJobParams<'a> {
+    pub id: i32,
+    pub job_id: &'a str,
+    pub job_type: jobs::JobType,
+    pub payload: Option<String>,
+    pub max_retries: Option<i32>,
+    pub pattern: Option<String>,
+    pub delay: Option<i32>,
+    pub retry: Option<i32>,
+    pub next_run_at: Option<chrono::NaiveDateTime>,
+    pub status: jobs::JobStatus,
+    pub output: Option<String>,
+}
+
+
 pub async fn get_active_jobs(
     db: &DatabaseConnection,
     queue: &str,
@@ -71,32 +98,24 @@ pub async fn get_active_schedule_by_job_id(
 
 pub async fn create_job(
     db: &DatabaseConnection,
-    job_id: &str,
-    job_type: jobs::JobType,
-    queue: &str,
-    payload: Option<String>,
-    max_retries: Option<i32>,
-    pattern: Option<String>,
-    delay: Option<i32>,
-    retry: Option<i32>,
-    id: Option<i32>,
+    params: CreateJobParams<'_>,
 ) -> Result<jobs::Model, CommonError> {
     let mut job = jobs::ActiveModel {
-        job_id: Set(job_id.to_owned()),
-        job_type: Set(job_type.clone()),
-        queue: Set(queue.to_owned()),
-        payload: Set(payload),
-        pattern: Set(pattern.clone()),
+        job_id: Set(params.job_id.to_owned()),
+        job_type: Set(params.job_type.clone()),
+        queue: Set(params.queue.to_owned()),
+        payload: Set(params.payload.clone()),
+        pattern: Set(params.pattern.clone()),
         status: Set(jobs::JobStatus::Active),
         next_run_at: Set(Some(chrono::Utc::now().naive_utc())), // default immediate
-        linked_job_id: Set(id),
+        linked_job_id: Set(params.id),
         ..Default::default()
     };
-    if let Some(max_retries) = max_retries {
+    if let Some(max_retries) = params.max_retries {
         job.max_retries = Set(max_retries);
     }
-    if let Some(pattern) = pattern {
-        if job_type != jobs::JobType::Schedule {
+    if let Some(pattern) = params.pattern {
+        if params.job_type != jobs::JobType::Schedule {
             return Err(CommonError::from(
                 "Pattern is only allowed for scheduled jobs".to_owned(),
             ));
@@ -110,8 +129,8 @@ pub async fn create_job(
         job.next_run_at = Set(Some(next_run_at.naive_utc()));
     }
 
-    if let Some(delay) = delay {
-        if job_type != jobs::JobType::Delayed {
+    if let Some(delay) = params.delay {
+        if params.job_type != jobs::JobType::Delayed {
             return Err(CommonError::from(
                 "Delay is only allowed for delayed jobs".to_owned(),
             ));
@@ -122,8 +141,8 @@ pub async fn create_job(
         ));
     }
 
-    if let Some(retry) = retry {
-        if retry >= max_retries.unwrap_or(0) {
+    if let Some(retry) = params.retry {
+        if retry >= params.max_retries.unwrap_or(0) {
             return Err(CommonError::from(
                 "Retry count should be less than max retries".to_owned(),
             ));
@@ -214,53 +233,46 @@ pub async fn generate_immediate_job_from_schedule_job(
     .await
     .map_err(|e| CommonError::from(e.to_string()))?;
 
+    let create_job_params = CreateJobParams {
+        job_id: &scheduled_job.job_id,
+        job_type: jobs::JobType::Immediate,
+        queue: &scheduled_job.queue,
+        payload: scheduled_job.payload,
+        max_retries: Some(scheduled_job.max_retries),
+        pattern: None,
+        delay: None,
+        retry: None,
+        id: Some(id),
+    };
     // Create new immediate job
     create_job(
         db,
-        &scheduled_job.job_id,
-        jobs::JobType::Immediate,
-        &scheduled_job.queue,
-        scheduled_job.payload,
-        Some(scheduled_job.max_retries),
-        None,
-        None,
-        None,
-        Some(id),
+        create_job_params,
     )
     .await
 }
 
 pub async fn update_job(
     db: &DatabaseConnection,
-    id: i32,
-    job_id: &str,
-    job_type: jobs::JobType,
-    payload: Option<String>,
-    max_retries: Option<i32>,
-    pattern: Option<String>,
-    delay: Option<i32>,
-    retry: Option<i32>,
-    next_run_at: Option<chrono::NaiveDateTime>,
-    status: jobs::JobStatus,
-    output: Option<String>,
+    params: UpdateJobParams<'_>,
 ) -> Result<jobs::Model, CommonError> {
     let mut job = jobs::ActiveModel {
-        id: Set(id),
-        job_id: Set(job_id.to_owned()),
-        job_type: Set(job_type.clone()),
-        payload: Set(payload),
-        pattern: Set(pattern.clone()),
-        status: Set(status.clone()),
-        next_run_at: Set(next_run_at),
+        id: Set(params.id),
+        job_id: Set(params.job_id.to_owned()),
+        job_type: Set(params.job_type.clone()),
+        payload: Set(params.payload.clone()),
+        pattern: Set(params.pattern.clone()),
+        status: Set(params.status.clone()),
+        next_run_at: Set(params.next_run_at),
         ..Default::default()
     };
 
-    if let Some(max_retries) = max_retries {
+    if let Some(max_retries) = params.max_retries {
         job.max_retries = Set(max_retries);
     }
 
-    if let Some(pattern) = pattern {
-        if job_type != jobs::JobType::Schedule {
+    if let Some(pattern) = params.pattern {
+        if params.job_type != jobs::JobType::Schedule {
             return Err(CommonError::from(
                 "Pattern is only allowed for scheduled jobs".to_owned(),
             ));
@@ -274,9 +286,9 @@ pub async fn update_job(
         job.next_run_at = Set(Some(next_run_at.naive_utc()));
     }
 
-    if let Some(delay) = delay {
+    if let Some(delay) = params.delay {
         if delay != 0 {
-            if job_type != jobs::JobType::Delayed {
+            if params.job_type != jobs::JobType::Delayed {
                 return Err(CommonError::from(
                     "Delay is only allowed for delayed jobs".to_owned(),
                 ));
@@ -288,8 +300,8 @@ pub async fn update_job(
         }
     }
 
-    if let Some(retry) = retry {
-        if retry > max_retries.unwrap_or(0) {
+    if let Some(retry) = params.retry {
+        if retry > params.max_retries.unwrap_or(0) {
             return Err(CommonError::from(
                 "Retry count should be less than max retries".to_owned(),
             ));
@@ -297,7 +309,7 @@ pub async fn update_job(
         job.retries = Set(retry);
     }
 
-    job.output = Set(output);
+    job.output = Set(params.output.clone());
 
     job.update(db)
         .await

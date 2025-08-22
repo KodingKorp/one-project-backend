@@ -55,8 +55,8 @@ impl QueueManager {
     /// Start all queues
     pub async fn start(&mut self) {
         // start the queue manager
-        let mut iterator = self.queues.iter_mut();
-        while let Some((name, queue)) = iterator.next() {
+        let iterator = self.queues.iter_mut();
+        for (name, queue) in iterator {
             logger::info(&format!("[bg][queue_manager] Starting queue {}", name));
             let _ = queue.start().await;
             logger::info(&format!("[bg][queue_manager] Started queue {}", name));
