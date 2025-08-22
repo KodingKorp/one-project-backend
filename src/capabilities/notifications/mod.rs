@@ -1,3 +1,3 @@
-pub(crate) mod service;
-pub mod objects;
 pub mod email_handler;
+pub mod objects;
+pub(crate) mod service;

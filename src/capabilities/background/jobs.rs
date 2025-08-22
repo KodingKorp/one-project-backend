@@ -209,7 +209,10 @@ pub async fn generate_immediate_job_from_schedule_job(
         id: Set(scheduled_job.id),
         next_run_at: Set(Some(next_run_at.naive_utc())),
         ..Default::default()
-    }).exec(db).await.map_err(|e| CommonError::from(e.to_string()))?;
+    })
+    .exec(db)
+    .await
+    .map_err(|e| CommonError::from(e.to_string()))?;
 
     // Create new immediate job
     create_job(

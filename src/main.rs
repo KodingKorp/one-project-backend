@@ -17,7 +17,7 @@ async fn main() -> Result<(), std::io::Error> {
     let server_url = format!("{host}:{port}");
 
     let app = bootstrap::build_app().await;
-
+    logger::info(&format!("Starting server on {server_url}"));
     poem::Server::new(TcpListener::bind(server_url))
         .run(app)
         .await

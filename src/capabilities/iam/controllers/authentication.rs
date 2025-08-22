@@ -1,19 +1,20 @@
-use poem::{session::Session, web::Data, Request};
-use poem_openapi::{param::Path, payload::Json, types::Email, Object, OpenApi};
-
 use crate::{
     bootstrap::AppState,
     capabilities::{
         background,
         iam::{
-            auth::{self, create_new_session},
             entities::user_login::LoginStrategy,
             objects::{SessionObject, UserObject},
+            services::auth_service,
         },
         lib::common_response::CommonResponse,
         logger,
     },
 };
+use poem::{session::Session, web::Data, Request};
+use poem_openapi::{param::Path, payload::Json, types::Email, Object, OpenApi};
+
+use ammonia::clean;
 
 #[derive(Debug, Object, Clone, Eq, PartialEq)]
 pub struct CreateUser {
@@ -45,12 +46,14 @@ impl Api {
         orchestrator: Data<&background::orchestrator::BackgroundOrchestrator>,
         payload: Json<CreateUser>,
     ) -> CommonResponse<UserObject> {
-        match auth::register(
+        match auth_service::register(
             &state.db,
-            payload.email.to_string().clone(),
+            clean(payload.email.as_str()),
             LoginStrategy::MagicLink,
             None,
-            orchestrator.0.clone(),
+            true,
+            true,
+            Some(orchestrator.0.clone()),
         )
         .await
         {
@@ -77,12 +80,14 @@ impl Api {
             "Registering user with email: {}",
             payload.email.to_string()
         ));
-        match auth::register(
+        match auth_service::register(
             &state.db,
-            payload.email.to_string().clone(),
+            clean(payload.email.as_str()),
             LoginStrategy::Password,
             Some(payload.password.clone()),
-            orchestrator.0.clone(),
+            true,
+            true,
+            Some(orchestrator.0.clone()),
         )
         .await
         {
@@ -98,10 +103,10 @@ impl Api {
         orchestrator: Data<&background::orchestrator::BackgroundOrchestrator>,
         payload: Json<CreateUser>,
     ) -> CommonResponse<String> {
-        match auth::send_magic_link(
+        match auth_service::send_magic_link(
             &state.db,
             orchestrator.0.clone(),
-            payload.email.to_string().clone(),
+            clean(payload.email.as_str()),
         )
         .await
         {
@@ -118,9 +123,9 @@ impl Api {
         payload: Json<LoginWithPassword>,
         session_store: &Session,
     ) -> CommonResponse<SessionObject> {
-        match auth::login_password(
+        match auth_service::login_password(
             &state.db,
-            payload.email.to_string(),
+            clean(payload.email.as_str()),
             payload.password.clone(),
         )
         .await
@@ -128,14 +133,14 @@ impl Api {
             Ok(CommonResponse::Ok(result)) => {
                 let user_agent = req.header("User-Agent").unwrap_or_default();
                 let ip = req.remote_addr().to_string();
-                match create_new_session(&state.db, result.0.data, user_agent, &ip).await {
-                    Ok(CommonResponse::Ok(session_object)) => {
-                        session_store.set("session", &session_object.0.data);
-                        CommonResponse::Ok(session_object)
-                    }
-                    Ok(_) => CommonResponse::InternalServerError,
-                    Err(_) => return CommonResponse::InternalServerError,
-                }
+                return auth_service::create_api_session(
+                    &state.db,
+                    session_store,
+                    &result.0.data,
+                    &clean(user_agent),
+                    &ip,
+                )
+                .await;
             }
             Ok(_) => CommonResponse::InternalServerError,
             Err(_) => CommonResponse::InternalServerError,
@@ -150,19 +155,18 @@ impl Api {
         token: Path<String>,
         session_store: &Session,
     ) -> CommonResponse<SessionObject> {
-        logger::info(&format!("Token: {}", token.0));
-        match auth::login_magic_link(&state.db, token.0.to_string()).await {
+        match auth_service::login_magic_link(&state.db, token.0.to_string()).await {
             Ok(CommonResponse::Ok(result)) => {
                 let user_agent = req.header("User-Agent").unwrap_or_default();
                 let ip = req.remote_addr().to_string();
-                match create_new_session(&state.db, result.0.data, user_agent, &ip).await {
-                    Ok(CommonResponse::Ok(session_object)) => {
-                        session_store.set("session", &session_object.0.data);
-                        CommonResponse::Ok(session_object)
-                    }
-                    Ok(_) => CommonResponse::InternalServerError,
-                    Err(_) => return CommonResponse::InternalServerError,
-                }
+                return auth_service::create_api_session(
+                    &state.db,
+                    session_store,
+                    &result.0.data,
+                    &clean(user_agent),
+                    &ip,
+                )
+                .await;
             }
             Ok(_) => CommonResponse::InternalServerError,
             Err(_) => CommonResponse::InternalServerError,
@@ -171,7 +175,7 @@ impl Api {
 
     #[oai(path = "/auth/logout", method = "post")]
     pub async fn logout(&self, session_store: &Session) -> CommonResponse<String> {
-        session_store.remove("session");
+        session_store.clear();
         CommonResponse::Done
     }
 }

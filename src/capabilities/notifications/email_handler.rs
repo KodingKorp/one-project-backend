@@ -1,4 +1,7 @@
-use crate::{bootstrap::AppState, capabilities::{background::JobHandler, logger}};
+use crate::{
+    bootstrap::AppState,
+    capabilities::{background::JobHandler, logger},
+};
 
 use super::objects::NotificationMailMessage;
 
@@ -18,10 +21,17 @@ impl JobHandler for EmailHandler {
         "send_email"
     }
 
-    async fn run(&self, job: &crate::capabilities::background::JobModel, _: Option<AppState>) -> Result<Option<String>, crate::capabilities::lib::common_error::CommonError> {
+    async fn run(
+        &self,
+        job: &crate::capabilities::background::JobModel,
+        _: Option<AppState>,
+    ) -> Result<Option<String>, crate::capabilities::lib::common_error::CommonError> {
         let message: NotificationMailMessage =
             serde_json::from_str(&job.payload.clone().unwrap()).unwrap();
-        logger::info(&format!("[bg][notifications][handler] Sending email to {}", message.email));
+        logger::info(&format!(
+            "[bg][notifications][handler] Sending email to {}",
+            message.email
+        ));
         let d = match message.data {
             Some(d) => d,
             None => serde_json::json!({}),
@@ -42,9 +52,14 @@ impl JobHandler for EmailHandler {
                 "[bg][notifications][handler] Error sending email: {}",
                 e
             ));
-            return Err(crate::capabilities::lib::common_error::CommonError::from(e.to_string()));
+            return Err(crate::capabilities::lib::common_error::CommonError::from(
+                e.to_string(),
+            ));
         }
-        logger::info(&format!("[bg][notifications][handler] Email sent successfully to {}", message.email));
+        logger::info(&format!(
+            "[bg][notifications][handler] Email sent successfully to {}",
+            message.email
+        ));
         Ok(Some("Email sent successfully".to_owned()))
     }
 }

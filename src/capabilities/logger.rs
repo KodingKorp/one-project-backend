@@ -10,10 +10,7 @@ pub(crate) fn init() -> Result<(), CommonError> {
         .with_default_directive(LevelFilter::INFO.into())
         .from_env()
         .map_err(|e| CommonError::from(e.to_string()))?
-        .add_directive(
-            directive
-                .parse().unwrap()
-        );
+        .add_directive(directive.parse().unwrap());
     tracing_subscriber::registry()
         .with(filter)
         .with(tracing_subscriber::fmt::layer())

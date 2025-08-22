@@ -1,5 +1,12 @@
-use super::{job_handler::{JobHandler, JobScheduler}, jobs, workers::Worker};
-use crate::{bootstrap::AppState, capabilities::{config, database, lib::common_error::CommonError, logger}};
+use super::{
+    job_handler::{JobHandler, JobScheduler},
+    jobs,
+    workers::Worker,
+};
+use crate::{
+    bootstrap::AppState,
+    capabilities::{config, database, lib::common_error::CommonError, logger},
+};
 use sea_orm::DatabaseConnection;
 use std::{
     collections::{HashMap, HashSet},
@@ -22,7 +29,7 @@ pub struct Queue {
     handlers: HandlerMap,
     worker_channel_tx: Option<tokio::sync::mpsc::Sender<QueueMessage>>,
     scheduler_channel_rx: Option<tokio::sync::mpsc::Receiver<QueueMessage>>,
-    app_state: Option<AppState>
+    app_state: Option<AppState>,
 }
 
 impl Queue {
@@ -36,18 +43,20 @@ impl Queue {
             job_ids: HashSet::new(),
             worker_channel_tx: None,
             scheduler_channel_rx: None,
-            app_state
+            app_state,
         }
     }
 
     async fn check_pending_jobs(&mut self) -> Result<(), CommonError> {
-        logger::info(&format!(
+        logger::debug(&format!(
             "[bg][queue][{}] Checking pending jobs",
             &self.name
         ));
         for job_id in &self.job_ids {
-            let jobs = jobs::get_pending_jobs(&self.db, job_id,&self.name,).await.unwrap();
-            logger::info(&format!(
+            let jobs = jobs::get_pending_jobs(&self.db, job_id, &self.name)
+                .await
+                .unwrap();
+            logger::debug(&format!(
                 "[bg][queue][{}] Found {} pending jobs for {}",
                 &self.name,
                 jobs.len(),
@@ -268,18 +277,19 @@ impl Queue {
         payload: Option<String>,
         max_retries: Option<i32>,
     ) -> Result<i32, CommonError> {
-        let existing_job = jobs::get_active_schedule_by_job_id(&self.db, job_id, &self.name).await?;
+        let existing_job =
+            jobs::get_active_schedule_by_job_id(&self.db, job_id, &self.name).await?;
         if existing_job.is_none() {
             return self
                 .create_scheduled_job(job_id, pattern, payload, max_retries)
                 .await;
         } else {
             let existing_job = existing_job.unwrap();
-            logger::debug(&format!(
+            logger::info(&format!(
                 "[bg][queue][{}] Updating schedule job: {}",
                 &self.name, job_id
             ));
-            let updated_job= jobs::update_job(
+            let updated_job = jobs::update_job(
                 &self.db,
                 existing_job.id,
                 existing_job.job_id.as_str(),
@@ -298,7 +308,6 @@ impl Queue {
         }
     }
     async fn start_scheduler(&mut self) {
-
         let mut poll_interval: u64 = config::get_env("SCHEDULER_POLL_INTERVAL");
 
         if poll_interval == 0 {
@@ -316,8 +325,13 @@ impl Queue {
         let db = self.db.clone();
         tokio::task::spawn(async move {
             while let Some(QueueMessage::TriggerSchedule(id)) = scheduler_channel_rx.recv().await {
-                logger::info(&format!("[bg][queue][{}] Triggering schedule {}", &name, id));
-                let new_job = jobs::generate_immediate_job_from_schedule_job(&db, id).await.unwrap();
+                logger::info(&format!(
+                    "[bg][queue][{}] Triggering schedule {}",
+                    &name, id
+                ));
+                let new_job = jobs::generate_immediate_job_from_schedule_job(&db, id)
+                    .await
+                    .unwrap();
                 let _ = worker_channel_tx
                     .send(QueueMessage::Job(new_job.id))
                     .await
@@ -334,11 +348,18 @@ impl Queue {
     pub async fn start(&mut self) {
         logger::info(&format!("[bg][queue][{}] Starting worker", &self.name));
 
-        self.worker_channel_tx =
-            Some(Worker::start_worker(self.name.clone(), &self.db, self.handlers.clone(), self.app_state.clone()).await);
+        self.worker_channel_tx = Some(
+            Worker::start_worker(
+                self.name.clone(),
+                &self.db,
+                self.handlers.clone(),
+                self.app_state.clone(),
+            )
+            .await,
+        );
         logger::info(&format!("[bg][queue][{}] Started worker", &self.name));
         let _ = self.check_pending_jobs().await;
-        
+
         self.start_scheduler().await;
     }
 }

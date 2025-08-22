@@ -2,11 +2,11 @@ use crate::capabilities::lib::common_error::CommonError;
 use sea_orm::ColumnTrait;
 use sea_orm::Set;
 
-use super::entities::users::ActiveModel as ActiveModelUser;
-use super::entities::users::Column;
-use super::entities::users::Entity as UserEntity;
-use super::entities::users::Model as User;
-use super::objects::UserObject;
+use super::super::entities::users::ActiveModel as ActiveModelUser;
+use super::super::entities::users::Column;
+use super::super::entities::users::Entity as UserEntity;
+use super::super::entities::users::Model as User;
+use super::super::objects::UserObject;
 use sea_orm::prelude::Uuid;
 use sea_orm::{DatabaseConnection, EntityTrait, QueryFilter};
 
@@ -29,7 +29,7 @@ pub async fn create_user(
     email: String,
 ) -> Result<Option<User>, CommonError> {
     let existing_user_result = find_user_by_email(db, email.clone()).await?;
-    if let Some(_) = existing_user_result {
+    if existing_user_result.is_some() {
         return Err(CommonError::from(String::from("Already Exists")));
     }
     let user = ActiveModelUser {

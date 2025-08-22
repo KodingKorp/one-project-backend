@@ -17,18 +17,18 @@ mod test {
             .unwrap_or(String::from(""));
         assert_ne!(&resp_str, "");
         let health_response: Health = serde_json::from_str(&resp_str)?;
-        assert_eq!(
-            health_response.db, true,
+        assert!(
+            health_response.db,
             "testing db connection with {} and {}",
             &health_response.db, true
         );
-        assert_eq!(
-            health_response.mailer, true,
+        assert!(
+            health_response.mailer,
             "testing db mailer with {} and {}",
             &health_response.db, true
         );
-        assert_eq!(
-            health_response.redis, true,
+        assert!(
+            health_response.redis,
             "testing db redis with {} and {}",
             &health_response.db, true
         );

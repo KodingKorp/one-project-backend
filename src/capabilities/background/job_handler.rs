@@ -1,8 +1,5 @@
 use sea_orm::DatabaseConnection;
-use tokio::{
-    sync::mpsc::Receiver,
-    time,
-};
+use tokio::{sync::mpsc::Receiver, time};
 
 use crate::capabilities::{lib::common_error::CommonError, logger};
 
@@ -51,7 +48,7 @@ impl JobScheduler {
         let mut last_complete = chrono::Utc::now();
         tokio::task::spawn(async move {
             loop {
-                logger::info(&format!(
+                logger::debug(&format!(
                     "[bg][scheduler][{}] Time between polls: {}ms",
                     &name,
                     last_complete
@@ -60,7 +57,7 @@ impl JobScheduler {
                 ));
                 last_poll = chrono::Utc::now();
 
-                logger::info(&format!(
+                logger::debug(&format!(
                     "[bg][scheduler][{}] Polling for jobs: {}",
                     &name,
                     last_poll.format("%d/%m/%Y %H:%M:%S")
@@ -76,12 +73,9 @@ impl JobScheduler {
                     for job in db_jobs {
                         logger::debug(&format!(
                             "[bg][scheduler][{}] Checking job: {} Next Run At: {:?}",
-                            &name,
-                            &job.id,
-                            &job.next_run_at
+                            &name, &job.id, &job.next_run_at
                         ));
-                        if let Some(next_run_time) = job.next_run_at
-                        {
+                        if let Some(next_run_time) = job.next_run_at {
                             if next_run_time <= last_poll.naive_utc() {
                                 logger::info(&format!(
                                     "[bg][scheduler][{}] Triggering job: {}",
@@ -96,7 +90,7 @@ impl JobScheduler {
                     }
                 }
                 last_complete = chrono::Utc::now();
-                logger::info(&format!(
+                logger::debug(&format!(
                     "[bg][scheduler][{}] Completed Polling for jobs: {}, Duration: {}ms",
                     &name,
                     last_complete.format("%d/%m/%Y %H:%M:%S"),

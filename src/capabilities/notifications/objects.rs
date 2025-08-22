@@ -5,6 +5,6 @@ pub struct NotificationMailMessage {
     pub template: String,
     pub subject: String,
     pub name: String,
-    pub email: String, 
-    pub data: Option<serde_json::Value>  
+    pub email: String,
+    pub data: Option<serde_json::Value>,
 }

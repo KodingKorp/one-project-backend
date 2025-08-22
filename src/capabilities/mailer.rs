@@ -38,10 +38,16 @@ impl Mailer {
 
         let transport = if config::get_env::<String>("ENV") == "production" {
             logger::debug("Using SMTPS transport");
-            let smtps_url = format!("smtps://{}:{}@{}:{}", &smtp_user_name, &smtp_user_pass, &smtp_server, &smtp_port);
+            let smtps_url = format!(
+                "smtps://{}:{}@{}:{}",
+                &smtp_user_name, &smtp_user_pass, &smtp_server, &smtp_port
+            );
             let result = AsyncSmtpTransport::<Tokio1Executor>::from_url(&smtps_url);
             if result.is_err() {
-                logger::error(&format!("Failed to create SMTP transport from URL: {}", result.as_ref().err().unwrap()));
+                logger::error(&format!(
+                    "Failed to create SMTP transport from URL: {}",
+                    result.as_ref().err().unwrap()
+                ));
             } else {
                 logger::debug("SMTP transport created successfully");
             }
@@ -69,7 +75,7 @@ impl Mailer {
     ) -> Result<String, handlebars::RenderError> {
         let mut handlebars = Handlebars::new();
         handlebars
-            .register_template_file(template_name, &format!("./templates/{}.hbs", template_name))?;
+            .register_template_file(template_name, format!("./templates/{}.hbs", template_name))?;
         handlebars.register_template_file("styles", "./templates/partials/styles.hbs")?;
         handlebars.register_template_file("base", "./templates/layout/base.hbs")?;
         let content_template = handlebars.render(template_name, &data)?;

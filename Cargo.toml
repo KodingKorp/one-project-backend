@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 authors = ["Shivam Mathur <shivam@kodingkorp.com>"]
 description = "Proprietary webserver for KodingKorp"
-rust-version = "1.87.0"
+rust-version = "1.89.0"
 readme = "README.md"
 
 [dependencies]
@@ -22,7 +22,7 @@ tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 uuid = { version = "1.10.0", features = ["v4"] }
 migration = { path = "./migration" }
 validator = { version = "0.18.1", features = ["derive", "validator_derive"] }
-poem = { version = "3.0.4", features = ["redis-session", "test"]}
+poem = { version = "3.0.4", features = ["redis-session", "test","static-files"]}
 poem-openapi = { version = "5.0.3", features = ["swagger-ui", "email", "uuid"] }
 bcrypt = "0.15.1"
 rand = "0.8.5"
@@ -36,3 +36,5 @@ regex = "1.11.1"
 async-trait = "0.1.83"
 cron = "0.12.1"
 tracing-test = "0.2.5"
+ammonia = "4.0.0"
+

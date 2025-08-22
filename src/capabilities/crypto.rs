@@ -30,7 +30,7 @@ pub fn jwt_sign<T: Serialize + for<'b> Deserialize<'b>>(
         exp: expiry,
     };
     let header = Header::new(Algorithm::HS512);
-    let secret: String = config::get_env(&key_var);
+    let secret: String = config::get_env(key_var);
     let encoding_key = EncodingKey::from_secret(secret.as_bytes());
 
     match encode(&header, &claims, &encoding_key) {
@@ -48,14 +48,14 @@ pub fn jwt_verify<T: Serialize + for<'b> Deserialize<'b>>(
     secret_key_var: Option<&str>,
 ) -> Result<T, CommonError> {
     let key_var = secret_key_var.unwrap_or("IAM_JWT_SECRET");
-    let secret: String = config::get_env(&key_var);
+    let secret: String = config::get_env(key_var);
 
     let mut validation = Validation::new(Algorithm::HS512);
     // force validation of expiry
     validation.validate_exp = true;
 
     let decode_result = decode::<Claims<T>>(
-        &jwt,
+        jwt,
         &DecodingKey::from_secret(secret.as_bytes()),
         &validation,
     );

@@ -6,9 +6,10 @@ services:
       args:
         APP_NAME: one-project-backend
     ports:
-      - 5000:5000
+      - "${HOST_PORT}:5000"
     environment:
       MAGIC_LINK_SECRET: ${MAGIC_LINK_SECRET}
+      ORG_INVITE_SECRET: ${ORG_INVITE_SECRET}
       DATABASE_URL: ${DATABASE_URL}      
       AUTO_MIGRATE: ${AUTO_MIGRATE}
       PORT: ${PORT}
@@ -25,7 +26,14 @@ services:
       DEFAULT_SENDER_NAME: ${DEFAULT_SENDER_NAME}
       ENV: ${ENV}
       BASE_LOGIN_LINK: ${BASE_LOGIN_LINK}
+      BASE_ORG_INVITE_LINK: ${BASE_ORG_INVITE_LINK}
       CRATE_NAME: ${CRATE_NAME}
       RUST_BACKTRACE: ${RUST_BACKTRACE}
       CRATE_LOG: ${CRATE_LOG}
       SCHEDULER_POLL_INTERVAL: ${SCHEDULER_POLL_INTERVAL}
+      MAX_SESSION_DURATION: ${MAX_SESSION_DURATION}
+      COOKIE_DOMAIN: ${COOKIE_DOMAIN}
+    develop:
+      watch:
+      - path: .
+        action: rebuild
