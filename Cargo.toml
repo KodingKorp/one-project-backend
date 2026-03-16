@@ -37,4 +37,5 @@ async-trait = "0.1.83"
 cron = "0.12.1"
 tracing-test = "0.2.5"
 ammonia = "4.0.0"
-
+[profile.release]
+strip = true

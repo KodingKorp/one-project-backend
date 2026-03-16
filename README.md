@@ -1,67 +1,78 @@
 # One Project Backend
 
-A Rust backend REST API server template to quickly build out robust projects.
+A Rust backend REST API foundation from KodingKorp for building robust products with shared platform capabilities.
 
 ## Features
 
-- **Auth**: Password-based and Magic Link authentication
-- **Swagger**: Auto-generated OpenAPI documentation
-- **Cron Jobs**: Schedule and manage recurring tasks
-- **Background Jobs**: Asynchronous job processing
-- **Email Notifications**: Built-in email notification support
+- IAM: password and magic-link auth, sessions, organisation membership and role mapping.
+- Swagger/OpenAPI: auto-generated public and private API docs.
+- Background jobs: queue + worker + scheduler model.
+- Notifications: email delivery through background handlers.
+- Platform utilities: logging, config loading, database and Redis integrations.
 
 ## Getting Started
 
 ### Prerequisites
-- Rust (latest stable)
-- Docker (for running dependencies like Postgres, Redis, SMTP)
+
+- Rust (stable)
+- Docker
 
 ### Setup
 
-1. **Clone the repository:**
-   ```sh
-   git clone https://github.com/KodingKorp/one-project-backend.git
-   cd one-project-backend
-   ```
+1. Clone repository:
 
-2. **Copy environment files:**
-   ```sh
-   cp .env.example .env
-   cp .env.example .env.e2e.test
-   ```
+```sh
+git clone https://github.com/KodingKorp/one-project-backend.git
+cd one-project-backend
+```
 
-3. **Start dependencies (Postgres, Redis, SMTP):**
-   ```sh
-   docker compose -f dev_infra/docker-compose.yml up -d
-   ```
+2. Copy env files:
 
-4. **Run database migrations:**
-   ```sh
-   cargo install sea-orm-cli@1.1.0
-   sea-orm-cli migrate up
-   ```
+```sh
+cp .env.example .env
+cp .env.example .env.e2e.test
+```
 
-5. **Build and run the server:**
-   ```sh
-   cargo build --release
-   cargo run --release
-   ```
+3. Start local infra (Postgres, Redis, SMTP):
 
-## API Documentation
+```sh
+docker compose -f dev_infra/docker-compose.yml up -d
+```
 
-- Swagger UI is available at `/docs` when the server is running.
+4. Run migrations:
+
+```sh
+cargo install sea-orm-cli@1.1.0
+sea-orm-cli migrate up
+```
+
+5. Run server:
+
+```sh
+cargo run --release
+```
+
+## API Docs
+
+- Public Swagger UI: `/swagger`
+- Private Swagger UI: `/private/swagger`
+
+## Documentation
+
+- Project docs index: [`docs/README.md`](docs/README.md)
+- Agent/contributor guardrails: [`AGENTS.md`](AGENTS.md)
 
 ## Project Structure
 
-- `src/` - Main application code
-- `migration/` - Database migrations
-- `dev_infra/` - Development infrastructure (docker-compose, SQL setup)
-- `templates/` - Email and notification templates
+- `src/`: application source
+- `migration/`: database migrations
+- `dev_infra/`: local infra definitions
+- `templates/`: email templates
 
 ## Contributing
 
-Contributions are welcome! Please open issues or submit pull requests.
+Contributions are welcome via issues and pull requests.
 
 ## License
 
-MIT License. See [LICENSE](LICENSE) for details.
+MIT. See [`LICENSE`](LICENSE).
